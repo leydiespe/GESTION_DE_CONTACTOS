@@ -13,8 +13,19 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.*;
-import javax.swing.DefaultListModel;
 import vista.ventana;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 /**
  *
@@ -23,34 +34,40 @@ import vista.ventana;
 public class personaDAO {
 
     private ventana vista;
-    
+
     private static final String ARCHIVO = "datosContactos.csv";
     private static final String SEPARADOR = ",";
+    // Executor para tareas en background (compartido)
+    private final ExecutorService bgExecutor = Executors.newFixedThreadPool(4);
+
+// Lock global para sincronizar exportaciones al archivo
+    private final Object exportLock = new Object();
+
+// Locks por contacto para edición segura (clave: email u otra clave única)
+    private static final ReentrantLock LOCK = new ReentrantLock();
 
     /**
-     * Guarda una persona en el archivo CSV.
-     * Si el archivo no existe, lo crea automáticamente.
+     * Guarda una persona en el archivo CSV. Si el archivo no existe, lo crea
+     * automáticamente.
      */
     public void guardarPersona(persona p) {
-        try (FileWriter fw = new FileWriter(ARCHIVO, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            
+        try (FileWriter fw = new FileWriter(ARCHIVO, true); BufferedWriter bw = new BufferedWriter(fw); PrintWriter out = new PrintWriter(bw)) {
+
             // Formato: nombre,telefono,email,categoria,favorito
             out.println(p.getNombre() + SEPARADOR
-                        + p.getTelefono() + SEPARADOR
-                        + p.getEmail() + SEPARADOR
-                        + p.getCategoria() + SEPARADOR
-                        + p.isFavorito());
-            
+                    + p.getTelefono() + SEPARADOR
+                    + p.getEmail() + SEPARADOR
+                    + p.getCategoria() + SEPARADOR
+                    + p.isFavorito());
+
         } catch (IOException e) {
             System.out.println("Error al guardar persona: " + e.getMessage());
         }
     }
 
     /**
-     * Lee todas las personas desde el archivo CSV.
-     * Retorna una lista de objetos persona.
+     * Lee todas las personas desde el archivo CSV. Retorna una lista de objetos
+     * persona.
      */
     public List<persona> leerPersonas() {
         List<persona> lista = new ArrayList<>();
@@ -80,18 +97,19 @@ public class personaDAO {
 
         return lista;
     }
+
     public String[][] obtenerDatosTabla() {
-    List<persona> lista = leerPersonas();
-    String[][] datos = new String[lista.size()][3];
-    
-    for (int i = 0; i < lista.size(); i++) {
-        persona p = lista.get(i);
-        datos[i][0] = p.getNombre();
-        datos[i][1] = p.getTelefono();
-        datos[i][2] = p.getEmail();
+        List<persona> lista = leerPersonas();
+        String[][] datos = new String[lista.size()][3];
+
+        for (int i = 0; i < lista.size(); i++) {
+            persona p = lista.get(i);
+            datos[i][0] = p.getNombre();
+            datos[i][1] = p.getTelefono();
+            datos[i][2] = p.getEmail();
+        }
+        return datos;
     }
-    return datos;
-}
 
     public void modificarPersona(int index, persona p) {
         List<persona> lista = leerPersonas();
@@ -124,21 +142,77 @@ public class personaDAO {
             System.out.println("Error al sobrescribir archivo: " + e.getMessage());
         }
     }
-    // Guarda una copia de los contactos mostrados en un nuevo CSV
-public void guardarDatosTablaCSV() {
-    String nuevoArchivo = "c:/datos_guardados.csv";
-    List<persona> lista = leerPersonas();
 
-    try (PrintWriter pw = new PrintWriter(new FileWriter(nuevoArchivo))) {
-        for (persona p : lista) {
-            pw.println(p.getNombre() + SEPARADOR
-                    + p.getTelefono() + SEPARADOR
-                    + p.getEmail());
+    // Guarda una copia de los contactos mostrados en un nuevo CSV
+    public void guardarDatosTablaCSV() {
+        String nuevoArchivo = "c:/datos_guardados.csv";
+        List<persona> lista = leerPersonas();
+
+        try (PrintWriter pw = new PrintWriter(new FileWriter(nuevoArchivo))) {
+            for (persona p : lista) {
+                pw.println(p.getNombre() + SEPARADOR
+                        + p.getTelefono() + SEPARADOR
+                        + p.getEmail());
+            }
+            System.out.println("Datos guardados en: " + nuevoArchivo);
+        } catch (IOException e) {
+            System.out.println("Error al guardar datos de la tabla: " + e.getMessage());
         }
-        System.out.println("Datos guardados en: " + nuevoArchivo);
-    } catch (IOException e) {
-        System.out.println("Error al guardar datos de la tabla: " + e.getMessage());
     }
-}
+
+    /**
+     * Verifica si ya existe un contacto con mismo nombre+telefono+email. Se
+     * puede cambiar la clave a email si ese campo es único.
+     */
+    public boolean existePersona(persona p) {
+        List<persona> lista = leerPersonas();
+        String nombre = (p.getNombre() != null) ? p.getNombre().trim().toLowerCase() : "";
+        String tel = (p.getTelefono() != null) ? p.getTelefono().trim() : "";
+        String email = (p.getEmail() != null) ? p.getEmail().trim().toLowerCase() : "";
+        for (persona q : lista) {
+            if (nombre.equals(q.getNombre().trim().toLowerCase())
+                    && tel.equals(q.getTelefono().trim())
+                    && email.equals(q.getEmail().trim().toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    
+    // Busca contactos que contengan la cadena 'texto' en nombre, teléfono o email.
+     
+    public List<persona> buscarPersonas(String texto) {
+        if (texto == null || texto.trim().isEmpty()) {
+            return leerPersonas();
+        }
+        String qnorm = texto.trim().toLowerCase();
+        List<persona> todos = leerPersonas();
+        return todos.stream()
+                .filter(p -> (p.getNombre() != null && p.getNombre().toLowerCase().contains(qnorm))
+                || (p.getTelefono() != null && p.getTelefono().toLowerCase().contains(qnorm))
+                || (p.getEmail() != null && p.getEmail().toLowerCase().contains(qnorm)))
+                .collect(Collectors.toList());
+    }
+   //exportacion en segundo plano 
+    public void exportarContactosCSV(List<persona> lista) {
+        synchronized (LOCK) {
+            try (FileWriter fw = new FileWriter(ARCHIVO, false); BufferedWriter bw = new BufferedWriter(fw); PrintWriter out = new PrintWriter(bw)) {
+
+                for (persona p : lista) {
+                    out.println(p.getNombre() + ","
+                            + p.getTelefono() + ","
+                            + p.getEmail() + ","
+                            + p.getCategoria() + ","
+                            + p.isFavorito());
+                }
+
+                System.out.println("Exportación completada con éxito.");
+
+            } catch (IOException e) {
+                System.err.println("Error al exportar contactos: " + e.getMessage());
+            }
+        }
+    }
 
 }

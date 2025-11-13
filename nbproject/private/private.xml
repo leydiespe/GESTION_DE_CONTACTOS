@@ -3,9 +3,13 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/idiomas/mensajes_en.properties</file>
             <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/vista/ventana.java</file>
             <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/vista/tabla.java</file>
+            <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/controlador/IdiomaManager.java</file>
             <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/controlador/logica_ventana.java</file>
+            <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/idiomas/mensajes.properties</file>
+            <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/idiomas/mensajes_fr.properties</file>
             <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/modelo/personaDAO.java</file>
             <file>file:/C:/Users/leydi/OneDrive/Documentos/NetBeansProjects/OnaGestion_de_contactos/src/modelo/persona.java</file>
         </group>

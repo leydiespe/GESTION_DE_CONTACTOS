@@ -10,6 +10,13 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import controlador.*;
 import java.util.Locale;
+import javax.swing.SwingWorker;
+import javax.swing.SwingUtilities;
+import java.util.List;
+import java.util.concurrent.Future;
+import java.io.File;
+import javax.swing.DefaultListModel;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -18,6 +25,7 @@ import java.util.Locale;
 public class ventana extends javax.swing.JFrame {
 
     private logica_ventana controlador;
+    private SwingWorker<List<persona>, Void> busquedaWorker;
 
     public ventana() {
         initComponents();
@@ -62,6 +70,7 @@ public class ventana extends javax.swing.JFrame {
         tablaContactos = new javax.swing.JScrollPane();
         lst_estadistica = new javax.swing.JList<>();
         progresoBarra = new javax.swing.JProgressBar();
+        lblStatus = new javax.swing.JLabel();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenuBusqueda = new javax.swing.JMenu();
         chb_tablaContactos = new javax.swing.JCheckBoxMenuItem();
@@ -107,9 +116,9 @@ public class ventana extends javax.swing.JFrame {
         cmb_categoria.setToolTipText("Categoria");
 
         btn_add.setIcon(new javax.swing.ImageIcon(getClass().getResource("/imagenes/agregar-usuario (1).png"))); // NOI18N
-        btn_add.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                btn_addMouseClicked(evt);
+        btn_add.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_addActionPerformed(evt);
             }
         });
 
@@ -135,6 +144,11 @@ public class ventana extends javax.swing.JFrame {
         btn_busqueda.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 btn_busquedaMouseClicked(evt);
+            }
+        });
+        btn_busqueda.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                btn_busquedaKeyReleased(evt);
             }
         });
 
@@ -167,42 +181,47 @@ public class ventana extends javax.swing.JFrame {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(17, Short.MAX_VALUE)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                        .addComponent(progresoBarra, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(pestañas, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 608, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(chb_favorito)
-                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                .addComponent(lbl_nombre, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(lbl_telefono, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(lbl_email, javax.swing.GroupLayout.PREFERRED_SIZE, 73, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addContainerGap(17, Short.MAX_VALUE)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(pestañas, javax.swing.GroupLayout.PREFERRED_SIZE, 608, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(txt_telefono)
-                                    .addComponent(txt_nombre)
-                                    .addComponent(txt_email, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(34, 34, 34)
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(chb_favorito)
+                                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(lbl_nombre, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(lbl_telefono, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(lbl_email, javax.swing.GroupLayout.PREFERRED_SIZE, 73, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel1Layout.createSequentialGroup()
-                                        .addComponent(btn_add, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                            .addComponent(txt_telefono)
+                                            .addComponent(txt_nombre)
+                                            .addComponent(txt_email, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGap(34, 34, 34)
+                                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addComponent(btn_add, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(btn_modificar, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(btn_eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                            .addComponent(cmb_categoria, javax.swing.GroupLayout.PREFERRED_SIZE, 226, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                                        .addGap(230, 230, 230)
+                                        .addComponent(lbl_nombres_busqueda, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addGap(18, 18, 18)
-                                        .addComponent(btn_modificar, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGap(18, 18, 18)
-                                        .addComponent(btn_eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addComponent(cmb_categoria, javax.swing.GroupLayout.PREFERRED_SIZE, 226, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                                .addGap(230, 230, 230)
-                                .addComponent(lbl_nombres_busqueda, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addComponent(txt_buscarpornombre, javax.swing.GroupLayout.PREFERRED_SIZE, 156, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btn_busqueda, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(17, 17, 17)))))
+                                        .addComponent(txt_buscarpornombre, javax.swing.GroupLayout.PREFERRED_SIZE, 156, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(btn_busqueda, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(17, 17, 17))))))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(25, 25, 25)
+                        .addComponent(lblStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(progresoBarra, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(17, 17, 17))
         );
         jPanel1Layout.setVerticalGroup(
@@ -238,7 +257,9 @@ public class ventana extends javax.swing.JFrame {
                 .addGap(8, 8, 8)
                 .addComponent(pestañas, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(26, 26, 26)
-                .addComponent(progresoBarra, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(progresoBarra, javax.swing.GroupLayout.PREFERRED_SIZE, 21, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblStatus))
                 .addContainerGap(20, Short.MAX_VALUE))
         );
 
@@ -305,46 +326,6 @@ public class ventana extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void btn_addMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btn_addMouseClicked
-        String nombre = txt_nombre.getText().trim();
-        String telefono = txt_telefono.getText().trim();
-        String email = txt_email.getText().trim();
-        String categoria = cmb_categoria.getSelectedItem().toString().trim();
-
-        if (nombre.isEmpty() || telefono.isEmpty() || email.isEmpty() || categoria.equals("Elija una categoria")) {
-            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios y debe seleccionar una categoría.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Validar que el teléfono sea solo números
-        // Validar formato de email simple
-        if (!email.matches("^[\\w.-]+@[\\w.-]+\\.\\w+$")) {
-            JOptionPane.showMessageDialog(this, "Ingrese un correo electrónico válido.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Crear objeto persona
-        persona p = new persona(
-                nombre,
-                telefono,
-                email,
-                categoria,
-                chb_favorito.isSelected()
-        );
-
-        btn_add.addActionListener(e -> {
-            controlador.procesarContacto(
-                    logica_ventana.Operacion.AGREGAR,
-                    -1,
-                    txt_nombre.getText(),
-                    txt_telefono.getText(),
-                    txt_email.getText(),
-                    cmb_categoria.getSelectedItem().toString(),
-                    chb_favorito.isSelected()
-            );
-        });
-    }//GEN-LAST:event_btn_addMouseClicked
 
     private void txt_telefonoKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_telefonoKeyTyped
         // TODO add your handling code here:
@@ -438,7 +419,98 @@ public class ventana extends javax.swing.JFrame {
     private void btn_busquedaMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btn_busquedaMouseClicked
         String texto = txt_buscarpornombre.getText();
         controlador.filtrarLista(texto);
+        controlador.limpiarCampos();
+
     }//GEN-LAST:event_btn_busquedaMouseClicked
+
+
+    private void btn_addActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_addActionPerformed
+        // validaciones
+        String nombre = txt_nombre.getText().trim();
+        String telefono = txt_telefono.getText().trim();
+        String email = txt_email.getText().trim();
+        String categoria = cmb_categoria.getSelectedItem().toString().trim();
+
+        if (nombre.isEmpty() || telefono.isEmpty() || email.isEmpty() || categoria.equals("Elija una categoria")) {
+            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios y debe seleccionar una categoría.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!telefono.matches("\\d+")) {
+            JOptionPane.showMessageDialog(this, "El teléfono debe contener solo números.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!email.matches("^[\\w.-]+@[\\w.-]+\\.\\w+$")) {
+            JOptionPane.showMessageDialog(this, "Ingrese un correo electrónico válido.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // constructor
+        personaDAO dao = new personaDAO();
+        persona p = new persona(nombre, telefono, email, categoria, chb_favorito.isSelected());
+
+        // proceso en segundo plano
+        new javax.swing.SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                if (dao.existePersona(p)) {
+                    return false; // Ya existe
+                } else {
+                    dao.guardarPersona(p);
+                    return true;
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Boolean guardado = get();
+                    if (guardado) {
+                        JOptionPane.showMessageDialog(ventana.this, "Contacto guardado con éxito", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        controlador.cargarContactosEnLista();
+                        progresoBarra.setValue(0);
+                    } else {
+                        JOptionPane.showMessageDialog(ventana.this, "Contacto duplicado: no se guardó", "Duplicado", JOptionPane.WARNING_MESSAGE);
+                        controlador.limpiarCampos();
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(ventana.this, "Error al guardar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+
+    }//GEN-LAST:event_btn_addActionPerformed
+    //Busqueda en segundo plano
+    private void btn_busquedaKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_btn_busquedaKeyReleased
+        String q = btn_busqueda.getText();
+        personaDAO dao = new personaDAO();
+
+        // Cancelar búsqueda anterior si existe
+        if (busquedaWorker != null && !busquedaWorker.isDone()) {
+            busquedaWorker.cancel(true);
+        }
+
+        busquedaWorker = new SwingWorker<List<persona>, Void>() {
+            @Override
+            protected List<persona> doInBackground() throws Exception {
+                return dao.buscarPersonas(q);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<persona> resultados = get();
+                    // actualizar modelo de JList / JTable en EDT
+                    SwingUtilities.invokeLater(() -> controlador.cargarContactosEnLista());
+                } catch (Exception e) {
+                    // manejar cancelación/errores
+                }
+            }
+        };
+        busquedaWorker.execute();
+    }//GEN-LAST:event_btn_busquedaKeyReleased
+
     public javax.swing.JList<String> getLst_contactos() {
         return lst_contactos;
     }
@@ -516,6 +588,7 @@ public class ventana extends javax.swing.JFrame {
     private javax.swing.JMenu jMenuIdiomas;
     private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JLabel lblStatus;
     private javax.swing.JLabel lbl_email;
     private javax.swing.JLabel lbl_nombre;
     private javax.swing.JLabel lbl_nombres_busqueda;

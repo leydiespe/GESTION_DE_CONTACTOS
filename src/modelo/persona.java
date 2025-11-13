@@ -11,6 +11,12 @@ package modelo;
 public class persona {
     private String nombre, telefono,email,categoria;
     private boolean favorito;
+
+    public persona() {
+    }
+
+    
+    
     
     public persona(String nombre, String telefono, String email, String categoria, boolean favorito) {
         this.nombre = nombre;

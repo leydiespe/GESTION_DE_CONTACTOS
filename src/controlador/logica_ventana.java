@@ -10,6 +10,8 @@ import vista.ventana;
 import modelo.*;
 import java.util.Locale;
 import controlador.logica_ventana;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -65,6 +67,7 @@ public class logica_ventana implements ListSelectionListener {
 
         // Cargar en el componente de la vista
         vista.lst_contactos.setModel(listModel);
+        limpiarCampos();
     }
 
     public void limpiarCampos() {
@@ -187,6 +190,7 @@ public class logica_ventana implements ListSelectionListener {
 
     public void procesarContacto(Operacion op, int index, String nombre, String telefono, String email, String categoria, boolean favorito) {
         javax.swing.SwingWorker<Void, Integer> worker = new javax.swing.SwingWorker<>() {
+
             @Override
             protected Void doInBackground() throws Exception {
                 int pasos = 100; // cantidad de pasos de progreso
@@ -194,7 +198,7 @@ public class logica_ventana implements ListSelectionListener {
                     Thread.sleep(5); // Simula procesamiento
                     publish(i);
                 }
-
+                
                 switch (op) {
                     case AGREGAR:
                         dao.guardarPersona(new persona(nombre, telefono, email, categoria, favorito));
@@ -210,6 +214,10 @@ public class logica_ventana implements ListSelectionListener {
                         }
                         break;
                 }
+                //Exportar lista actualizada a CSV ---
+                List<persona> lista = dao.leerPersonas();
+                dao.exportarContactosCSV(lista);
+                
                 return null;
             }
 
@@ -221,15 +229,40 @@ public class logica_ventana implements ListSelectionListener {
 
             @Override
             protected void done() {
-                cargarContactosEnLista();
-                limpiarCampos();
-                vista.progresoBarra.setValue(0); // reiniciar barra
+                try {
+                    // Actualizar lista y limpiar interfaz
+                    cargarContactosEnLista();
+                    limpiarCampos();
+                    vista.progresoBarra.setValue(0);
+
+                    SwingUtilities.invokeLater(() -> {
+                        String mensaje = "";
+                        switch (op) {
+                            case AGREGAR:
+                                mensaje = " Contacto guardado con éxito.";
+                                break;
+                            case MODIFICAR:
+                                mensaje = " Contacto modificado correctamente.";
+                                break;
+                            case ELIMINAR:
+                                mensaje = " Contacto eliminado correctamente.";
+                                break;
+                        }
+
+                        JOptionPane.showMessageDialog(vista, mensaje, "Notificación", JOptionPane.INFORMATION_MESSAGE);
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(vista, "Error al procesar contacto: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         };
 
         worker.execute();
     }
-    
+
     private static java.util.Locale idiomaActual = java.util.Locale.getDefault();
 
     public static Locale getIdiomaActual() {
